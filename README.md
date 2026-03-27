@@ -68,7 +68,12 @@ The included `pbi.*` views preserve the current semantic layer names as a first 
 - `pbi.Financials`
 - `pbi.Budget`
 - `pbi.Assets`
+- `pbi.StatementMapping`
 - `pbi.SummaryMapping`
+- `pbi.Cash`
+- `pbi.CAPEX`
+- `pbi.Loan`
+- `pbi.ValuationPivot`
 - `pbi.DateTable`
 
 Those views are intentionally built on top of the raw landing model so we can harden logic incrementally without changing the ingestion contract.

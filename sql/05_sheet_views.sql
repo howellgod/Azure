@@ -44,6 +44,37 @@ INNER JOIN sheet.vw_LatestSuccessfulRun AS lr
     ON c.IngestionRunId = lr.IngestionRunId;
 GO
 
+CREATE OR ALTER VIEW sheet.vw_GlobalInputs
+AS
+SELECT
+    p.PortfolioCode,
+    p.PortfolioName,
+    sw.AssetName AS Asset,
+    sw.SourceFileName AS FileName,
+    c.PortfolioId,
+    c.WorkbookId,
+    c.IngestionRunId,
+    c.RowNumber,
+    MAX(CASE WHEN c.ColumnNumber = 2 THEN c.CellTextValue END) AS InputName,
+    MAX(CASE WHEN c.ColumnNumber = 3 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END) AS InputValue
+FROM sheet.vw_WorkbookCellLatest AS c
+INNER JOIN meta.Portfolio AS p
+    ON c.PortfolioId = p.PortfolioId
+LEFT JOIN meta.SourceWorkbook AS sw
+    ON c.WorkbookId = sw.WorkbookId
+WHERE c.WorksheetName = N'Global Inputs'
+  AND c.RowNumber BETWEEN 1 AND 5
+GROUP BY
+    p.PortfolioCode,
+    p.PortfolioName,
+    sw.AssetName,
+    sw.SourceFileName,
+    c.PortfolioId,
+    c.WorkbookId,
+    c.IngestionRunId,
+    c.RowNumber;
+GO
+
 CREATE OR ALTER VIEW sheet.vw_QBODropRows
 AS
 SELECT
@@ -217,6 +248,38 @@ LEFT JOIN meta.SourceWorkbook AS sw
 WHERE a.AccountLabel IS NOT NULL;
 GO
 
+CREATE OR ALTER VIEW sheet.vw_CashPositionTargets
+AS
+SELECT
+    p.PortfolioCode,
+    p.PortfolioName,
+    sw.AssetName AS Asset,
+    sw.SourceFileName AS FileName,
+    c.PortfolioId,
+    c.WorkbookId,
+    c.IngestionRunId,
+    c.RowNumber,
+    MAX(CASE WHEN c.ColumnNumber = 2 THEN c.CellTextValue END) AS AccountCode,
+    MAX(CASE WHEN c.ColumnNumber = 3 THEN c.CellTextValue END) AS AccountLabel,
+    TRY_CONVERT(DECIMAL(19,4), MAX(CASE WHEN c.ColumnNumber = 17 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS TargetAmount
+FROM sheet.vw_WorkbookCellLatest AS c
+INNER JOIN meta.Portfolio AS p
+    ON c.PortfolioId = p.PortfolioId
+LEFT JOIN meta.SourceWorkbook AS sw
+    ON c.WorkbookId = sw.WorkbookId
+WHERE c.WorksheetName = N'CashPositions'
+  AND c.RowNumber >= 4
+GROUP BY
+    p.PortfolioCode,
+    p.PortfolioName,
+    sw.AssetName,
+    sw.SourceFileName,
+    c.PortfolioId,
+    c.WorkbookId,
+    c.IngestionRunId,
+    c.RowNumber;
+GO
+
 CREATE OR ALTER VIEW sheet.vw_CashPositionsLong
 AS
 WITH PeriodColumns AS
@@ -231,6 +294,7 @@ WITH PeriodColumns AS
     WHERE c.WorksheetName = N'CashPositions'
       AND c.RowNumber = 3
       AND c.ColumnNumber >= 4
+      AND c.ColumnNumber <= 16
 ),
 AccountRows AS
 (
@@ -263,6 +327,7 @@ Amounts AS
     WHERE c.WorksheetName = N'CashPositions'
       AND c.RowNumber >= 4
       AND c.ColumnNumber >= 4
+      AND c.ColumnNumber <= 16
 )
 SELECT
     p.PortfolioCode,
@@ -468,4 +533,91 @@ INNER JOIN meta.Portfolio AS p
 LEFT JOIN meta.SourceWorkbook AS sw
     ON m.WorkbookId = sw.WorkbookId
 WHERE m.ItemLabel IS NOT NULL;
+GO
+
+CREATE OR ALTER VIEW sheet.vw_ValuationKeyMetrics
+AS
+SELECT
+    p.PortfolioCode,
+    p.PortfolioName,
+    sw.AssetName AS Asset,
+    sw.SourceFileName AS FileName,
+    c.PortfolioId,
+    c.WorkbookId,
+    c.IngestionRunId,
+    c.RowNumber,
+    MAX(CASE WHEN c.ColumnNumber = 4 THEN c.CellTextValue END) AS MetricKey,
+    MAX(CASE WHEN c.ColumnNumber = 5 THEN c.CellTextValue END) AS MetricLabel,
+    TRY_CONVERT(DECIMAL(19,6), MAX(CASE WHEN c.ColumnNumber = 7 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS MetricValue,
+    TRY_CONVERT(DECIMAL(19,6), MAX(CASE WHEN c.ColumnNumber = 8 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS MinimumValue,
+    TRY_CONVERT(DECIMAL(19,6), MAX(CASE WHEN c.ColumnNumber = 9 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS TargetValue,
+    TRY_CONVERT(DECIMAL(19,6), MAX(CASE WHEN c.ColumnNumber = 10 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS Weighting,
+    TRY_CONVERT(DECIMAL(19,6), MAX(CASE WHEN c.ColumnNumber = 11 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS Passing,
+    MAX(CASE WHEN c.ColumnNumber = 12 THEN c.CellTextValue END) AS Note
+FROM sheet.vw_WorkbookCellLatest AS c
+INNER JOIN meta.Portfolio AS p
+    ON c.PortfolioId = p.PortfolioId
+LEFT JOIN meta.SourceWorkbook AS sw
+    ON c.WorkbookId = sw.WorkbookId
+WHERE c.WorksheetName = N'Valuation'
+  AND c.RowNumber BETWEEN 70 AND 89
+GROUP BY
+    p.PortfolioCode,
+    p.PortfolioName,
+    sw.AssetName,
+    sw.SourceFileName,
+    c.PortfolioId,
+    c.WorkbookId,
+    c.IngestionRunId,
+    c.RowNumber;
+GO
+
+CREATE OR ALTER VIEW sheet.vw_LoanSummary
+AS
+SELECT
+    p.PortfolioCode,
+    p.PortfolioName,
+    sw.AssetName AS Asset,
+    sw.SourceFileName AS FileName,
+    c.PortfolioId,
+    c.WorkbookId,
+    c.IngestionRunId,
+    c.ColumnNumber AS LoanColumnNumber,
+    MAX(CASE WHEN c.RowNumber = 114 THEN c.CellTextValue END) AS LoanName,
+    MAX(CASE WHEN c.RowNumber = 115 THEN c.CellTextValue END) AS PropertyName,
+    MAX(CASE WHEN c.RowNumber = 116 THEN c.CellTextValue END) AS PropertyAddress,
+    MAX(CASE WHEN c.RowNumber = 117 THEN c.CellTextValue END) AS Borrower,
+    MAX(CASE WHEN c.RowNumber = 118 THEN c.CellTextValue END) AS Lender,
+    TRY_CONVERT(DECIMAL(19,4), MAX(CASE WHEN c.RowNumber = 119 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS OriginalLoanBalance,
+    util.ExcelSerialToDate(TRY_CONVERT(DECIMAL(18,5), MAX(CASE WHEN c.RowNumber = 120 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END))) AS LoanStartDate,
+    TRY_CONVERT(DECIMAL(19,4), MAX(CASE WHEN c.RowNumber = 121 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS CurrentLoanBalance,
+    TRY_CONVERT(DECIMAL(19,4), MAX(CASE WHEN c.RowNumber = 122 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS DebtService,
+    TRY_CONVERT(DECIMAL(19,4), MAX(CASE WHEN c.RowNumber = 123 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS NOI_Month,
+    TRY_CONVERT(DECIMAL(19,4), MAX(CASE WHEN c.RowNumber = 124 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS NOI_Year,
+    TRY_CONVERT(DECIMAL(19,6), MAX(CASE WHEN c.RowNumber = 125 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)) AS DSCR
+FROM sheet.vw_WorkbookCellLatest AS c
+INNER JOIN meta.Portfolio AS p
+    ON c.PortfolioId = p.PortfolioId
+LEFT JOIN meta.SourceWorkbook AS sw
+    ON c.WorkbookId = sw.WorkbookId
+WHERE c.WorksheetName = N'LoanEquity'
+  AND c.RowNumber BETWEEN 114 AND 125
+  AND c.ColumnNumber >= 7
+GROUP BY
+    p.PortfolioCode,
+    p.PortfolioName,
+    sw.AssetName,
+    sw.SourceFileName,
+    c.PortfolioId,
+    c.WorkbookId,
+    c.IngestionRunId,
+    c.ColumnNumber
+HAVING
+    COALESCE(MAX(CASE WHEN c.RowNumber = 114 THEN c.CellTextValue END), N'') NOT IN (N'', N'0')
+    OR COALESCE(MAX(CASE WHEN c.RowNumber = 117 THEN c.CellTextValue END), N'') NOT IN (N'', N'0')
+    OR COALESCE(MAX(CASE WHEN c.RowNumber = 118 THEN c.CellTextValue END), N'') NOT IN (N'', N'0')
+    OR COALESCE(TRY_CONVERT(DECIMAL(19,4), MAX(CASE WHEN c.RowNumber = 119 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)), 0) <> 0
+    OR COALESCE(TRY_CONVERT(DECIMAL(19,4), MAX(CASE WHEN c.RowNumber = 121 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)), 0) <> 0
+    OR COALESCE(TRY_CONVERT(DECIMAL(19,4), MAX(CASE WHEN c.RowNumber = 122 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)), 0) <> 0
+    OR COALESCE(TRY_CONVERT(DECIMAL(19,4), MAX(CASE WHEN c.RowNumber = 124 THEN COALESCE(CONVERT(NVARCHAR(100), c.CellNumericValue), c.CellTextValue) END)), 0) <> 0;
 GO
