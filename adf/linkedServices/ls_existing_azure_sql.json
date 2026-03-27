@@ -1,0 +1,26 @@
+{
+  "name": "ls_existing_azure_sql",
+  "properties": {
+    "annotations": [
+      "Parameterize with Key Vault-backed secrets before deployment."
+    ],
+    "parameters": {
+      "serverName": {
+        "type": "String"
+      },
+      "databaseName": {
+        "type": "String"
+      },
+      "userName": {
+        "type": "String"
+      },
+      "password": {
+        "type": "SecureString"
+      }
+    },
+    "type": "AzureSqlDatabase",
+    "typeProperties": {
+      "connectionString": "Server=tcp:@{linkedService().serverName}.database.windows.net,1433;Initial Catalog=@{linkedService().databaseName};Persist Security Info=False;User ID=@{linkedService().userName};Password=@{linkedService().password};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+    }
+  }
+}

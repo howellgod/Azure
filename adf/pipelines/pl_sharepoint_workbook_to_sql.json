@@ -1,0 +1,281 @@
+{
+  "name": "pl_sharepoint_workbook_to_sql",
+  "properties": {
+    "annotations": [
+      "Scaffolded Phase 1 pipeline for workbook-to-Azure SQL ingestion."
+    ],
+    "parameters": {
+      "portfolioCode": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      },
+      "filePath": {
+        "type": "String"
+      },
+      "sourceModifiedAtUtc": {
+        "type": "String"
+      },
+      "extractRelativeUrl": {
+        "type": "String"
+      }
+    },
+    "activities": [
+      {
+        "name": "StartIngestionRun",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [],
+        "linkedServiceName": {
+          "referenceName": "ls_existing_azure_sql",
+          "type": "LinkedServiceReference"
+        },
+        "typeProperties": {
+          "storedProcedureName": "[ingest].[usp_BeginIngestionRun]",
+          "storedProcedureParameters": {
+            "PortfolioCode": {
+              "value": "@pipeline().parameters.portfolioCode",
+              "type": "String"
+            },
+            "SourceFileName": {
+              "value": "@pipeline().parameters.fileName",
+              "type": "String"
+            },
+            "SourceFilePath": {
+              "value": "@pipeline().parameters.filePath",
+              "type": "String"
+            },
+            "SourceLastModifiedAtUtc": {
+              "value": "@pipeline().parameters.sourceModifiedAtUtc",
+              "type": "String"
+            },
+            "TriggerType": {
+              "value": "ADF",
+              "type": "String"
+            },
+            "PipelineRunId": {
+              "value": "@pipeline().RunId",
+              "type": "String"
+            }
+          }
+        }
+      },
+      {
+        "name": "LookupWorksheetConfig",
+        "type": "Lookup",
+        "dependsOn": [
+          {
+            "activity": "StartIngestionRun",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": "SELECT WorksheetName, LandingMode FROM meta.WorksheetConfig WHERE IsEnabled = 1 ORDER BY WorksheetName;"
+          },
+          "dataset": {
+            "referenceName": "ds_sql_workbook_cell",
+            "type": "DatasetReference",
+            "parameters": {
+              "schemaName": "landing",
+              "tableName": "WorkbookCell"
+            }
+          },
+          "firstRowOnly": false
+        }
+      },
+      {
+        "name": "CopyWorkbookCellsToSql",
+        "type": "Copy",
+        "dependsOn": [
+          {
+            "activity": "LookupWorksheetConfig",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "inputs": [
+          {
+            "referenceName": "ds_sharepoint_workbook_cell_json",
+            "type": "DatasetReference",
+            "parameters": {
+              "relativeUrl": "@pipeline().parameters.extractRelativeUrl"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_sql_workbook_cell",
+            "type": "DatasetReference"
+          }
+        ],
+        "typeProperties": {
+          "source": {
+            "type": "RestSource",
+            "httpRequestTimeout": "00:05:00",
+            "requestInterval": "00.00:00:00.010"
+          },
+          "sink": {
+            "type": "AzureSqlSink",
+            "writeBehavior": "insert"
+          },
+          "translator": {
+            "type": "TabularTranslator",
+            "mappings": [
+              {
+                "source": {
+                  "path": "$['ingestionRunId']"
+                },
+                "sink": {
+                  "name": "IngestionRunId",
+                  "type": "Int64"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['portfolioId']"
+                },
+                "sink": {
+                  "name": "PortfolioId",
+                  "type": "Int32"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['workbookId']"
+                },
+                "sink": {
+                  "name": "WorkbookId",
+                  "type": "Int32"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['worksheetName']"
+                },
+                "sink": {
+                  "name": "WorksheetName",
+                  "type": "String"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['cellAddress']"
+                },
+                "sink": {
+                  "name": "CellAddress",
+                  "type": "String"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['rowNumber']"
+                },
+                "sink": {
+                  "name": "RowNumber",
+                  "type": "Int32"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['columnNumber']"
+                },
+                "sink": {
+                  "name": "ColumnNumber",
+                  "type": "Int32"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['columnLetter']"
+                },
+                "sink": {
+                  "name": "ColumnLetter",
+                  "type": "String"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['cellTextValue']"
+                },
+                "sink": {
+                  "name": "CellTextValue",
+                  "type": "String"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['cellNumericValue']"
+                },
+                "sink": {
+                  "name": "CellNumericValue",
+                  "type": "Decimal"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['formulaText']"
+                },
+                "sink": {
+                  "name": "FormulaText",
+                  "type": "String"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['fileName']"
+                },
+                "sink": {
+                  "name": "FileName",
+                  "type": "String"
+                }
+              },
+              {
+                "source": {
+                  "path": "$['filePath']"
+                },
+                "sink": {
+                  "name": "FilePath",
+                  "type": "String"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "CompleteIngestionRun",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "CopyWorkbookCellsToSql",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "linkedServiceName": {
+          "referenceName": "ls_existing_azure_sql",
+          "type": "LinkedServiceReference"
+        },
+        "typeProperties": {
+          "storedProcedureName": "[ingest].[usp_CompleteIngestionRun]",
+          "storedProcedureParameters": {
+            "PipelineRunId": {
+              "value": "@pipeline().RunId",
+              "type": "String"
+            },
+            "Status": {
+              "value": "Succeeded",
+              "type": "String"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

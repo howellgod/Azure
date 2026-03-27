@@ -1,0 +1,25 @@
+{
+  "name": "ds_sql_workbook_cell",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_existing_azure_sql",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "schemaName": {
+        "type": "String",
+        "defaultValue": "landing"
+      },
+      "tableName": {
+        "type": "String",
+        "defaultValue": "WorkbookCell"
+      }
+    },
+    "type": "AzureSqlTable",
+    "schema": [],
+    "typeProperties": {
+      "schema": "@dataset().schemaName",
+      "table": "@dataset().tableName"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+subscription_id                         = "00000000-0000-0000-0000-000000000000"
+location                                = "eastus"
+environment                             = "dev"
+app_name                                = "powerbi-schema"
+resource_group_name                     = "rg-powerbi-schema-dev"
+create_resource_group                   = false
+data_factory_name                       = "adf-powerbi-schema-dev"
+deploy_key_vault                        = true
+key_vault_name                          = "kv-powerbi-schema-dev"
+existing_sql_server_resource_group_name = "rg-existing-sql"
+existing_sql_server_name                = "existing-sql-server-name"
+existing_sql_database_name              = "existing-sql-database-name"
+log_analytics_workspace_resource_id     = null
+
+tags = {
+  owner       = "analytics"
+  system      = "powerbi"
+  environment = "dev"
+}

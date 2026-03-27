@@ -1,0 +1,22 @@
+{
+  "name": "ds_sharepoint_workbook_cell_json",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_sharepoint_rest",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "relativeUrl": {
+        "type": "String"
+      }
+    },
+    "type": "Json",
+    "typeProperties": {
+      "location": {
+        "type": "RestServiceLocation",
+        "relativeUrl": "@dataset().relativeUrl"
+      }
+    },
+    "schema": []
+  }
+}

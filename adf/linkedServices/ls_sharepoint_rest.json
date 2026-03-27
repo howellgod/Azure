@@ -1,0 +1,34 @@
+{
+  "name": "ls_sharepoint_rest",
+  "properties": {
+    "annotations": [
+      "Use Microsoft Graph or SharePoint REST for workbook discovery and extraction."
+    ],
+    "parameters": {
+      "baseUrl": {
+        "type": "String"
+      },
+      "tenantId": {
+        "type": "String"
+      },
+      "clientId": {
+        "type": "String"
+      },
+      "clientSecret": {
+        "type": "SecureString"
+      }
+    },
+    "type": "RestService",
+    "typeProperties": {
+      "url": "@{linkedService().baseUrl}",
+      "enableServerCertificateValidation": true,
+      "authenticationType": "AadServicePrincipal",
+      "tenant": "@{linkedService().tenantId}",
+      "servicePrincipalId": "@{linkedService().clientId}",
+      "servicePrincipalKey": {
+        "type": "SecureString",
+        "value": "@{linkedService().clientSecret}"
+      }
+    }
+  }
+}
